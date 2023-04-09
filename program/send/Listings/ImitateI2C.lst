@@ -1,0 +1,111 @@
+C51 COMPILER V9.60.0.0   IMITATEI2C                                                        04/02/2023 13:40:29 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE IMITATEI2C
+OBJECT MODULE PLACED IN .\Objects\ImitateI2C.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE ImitateI2C.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listing
+                    -s\ImitateI2C.lst) TABS(2) OBJECT(.\Objects\ImitateI2C.obj)
+
+line level    source
+
+   1          /*
+   2           * @Author: Luohua luohuax233@gmail.com
+   3           * @Date: 2023-03-19 10:09:54
+   4           * @LastEditors: Luohua luohuax233@gmail.com
+   5           * @LastEditTime: 2023-03-21 23:04:43
+   6           * @FilePath: \program\ImitateI2C.c
+   7           * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: 
+             -https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+   8           */
+   9          #include "lmitateI2C.h"
+  10          #include "intrins.h"
+  11          
+  12          void lmitateI2CInit(void){
+  13   1        P1M0&=0x3F;
+  14   1        P1M1&=0x3F;
+  15   1        SCL=1;
+  16   1        SDA=1;
+  17   1      }
+  18          
+  19          void lmitateI2CStart(void){
+  20   1        SCL=1;
+  21   1        SDA=1;
+  22   1        SDA=0;
+  23   1        SCL=0;
+  24   1      }
+  25          
+  26          void lmitateI2CStop(void){
+  27   1        SCL=0;
+  28   1        SDA=0;
+  29   1        SCL=1;
+  30   1        SDA=1;
+  31   1      }
+  32          
+  33          bit lmitateI2CSendBeyt(unsigned char info){
+  34   1        unsigned char i;
+  35   1        bit ACK;
+  36   1        for(i=0;i<8;i++){
+  37   2          SCL=0;
+  38   2          if(0x80&info)
+  39   2            SDA=1;
+  40   2          else
+  41   2            SDA=0;
+  42   2          info<<=1;
+  43   2          SCL=1;
+  44   2        }
+  45   1        SCL=0;
+  46   1        SDA=1;
+  47   1        _nop_();
+  48   1        _nop_();
+  49   1        _nop_();
+  50   1        _nop_();
+  51   1        SCL=1;
+  52   1        _nop_();
+  53   1        _nop_();
+C51 COMPILER V9.60.0.0   IMITATEI2C                                                        04/02/2023 13:40:29 PAGE 2   
+
+  54   1        _nop_();
+  55   1        _nop_();
+  56   1        ACK=SDA;
+  57   1        SCL=0;
+  58   1        return ~ACK;
+  59   1      }
+  60          
+  61          unsigned char lmitateI2CReceiveBeyt(bit ACK){
+  62   1        unsigned char i;
+  63   1        unsigned char info=0x00;
+  64   1        SDA=1;
+  65   1        for(i=0;i<8;i++){
+  66   2          info<<=1;
+  67   2          SCL=1;
+  68   2          if(SDA)
+  69   2            info|=0x01;
+  70   2          SCL=0;
+  71   2        }
+  72   1        SDA=~ACK;
+  73   1        SCL=1;
+  74   1        _nop_();
+  75   1        _nop_();
+  76   1        _nop_();
+  77   1        _nop_();
+  78   1        SCL=0;
+  79   1        SDA=1;
+  80   1        return info;
+  81   1      }
+  82          
+  83          
+  84          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    134    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

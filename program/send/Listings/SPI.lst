@@ -1,0 +1,61 @@
+C51 COMPILER V9.60.0.0   SPI                                                               04/09/2023 00:51:41 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE SPI
+OBJECT MODULE PLACED IN .\Objects\SPI.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE SPI.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\SPI.l
+                    -st) TABS(2) OBJECT(.\Objects\SPI.obj)
+
+line level    source
+
+   1          #include "SPI.h"
+   2          
+   3          bit SPIBusy;
+   4          
+   5          void SPI_Isr() interrupt 9{
+   6   1        SPSTAT=0xC0;
+   7   1        SPIBusy=0;
+   8   1      }
+   9          
+  10          
+  11          void hardwareSPIInit(void){
+  12   1        P_SW2|=0x80;
+  13   1        P3M0&=0xC3;
+  14   1        P3M1&=0x43;
+  15   1        P3M0|=0x80;
+  16   1        P_SW1|=0x0C;
+  17   1        SPIBusy=0;
+  18   1        SS=1;
+  19   1        SPCTL=0x53;
+  20   1        SPSTAT=0xC0;
+  21   1        IE2|=0x02;
+  22   1        EA=1;
+  23   1      }
+  24          
+  25          unsigned char hardwareSPIExchangeData(unsigned char info){
+  26   1        SPIBusy =1;
+  27   1        SPDAT=info;
+  28   1        while(SPIBusy);
+  29   1        return SPDAT;
+  30   1      }
+  31          
+  32          /*void hardwareSPISwitch(bit status){
+  33            if(status)
+  34              SPCTL|=0x40;
+  35            else
+  36              SPCTL&=~0x40;
+  37          }*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     47    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

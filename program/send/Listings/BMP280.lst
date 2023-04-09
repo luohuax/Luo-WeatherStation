@@ -1,0 +1,178 @@
+C51 COMPILER V9.60.0.0   BMP280                                                            04/09/2023 00:45:32 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE BMP280
+OBJECT MODULE PLACED IN .\Objects\BMP280.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE BMP280.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\BM
+                    -P280.lst) TABS(2) OBJECT(.\Objects\BMP280.obj)
+
+line level    source
+
+   1          #include "BMP280.h"
+   2          
+   3          BMP280TypeDef_Parameter BMP280;
+   4          BMP280TypeDef_Data BMP280_Environmentinfo;
+   5          
+   6          bit BMP280_ChangeCompleted,BMP280_DataAvailable;
+   7          
+   8          void BMP280_Restart(void) { // 传感器软重启函数
+   9   1          hardwareI2CStart();
+  10   1          hardwareI2CSendBeyt(0xEC); // 地址为0x76，最低位加一个0后变为0xEC，即为地址为0x76�
+             -�器件，R/W选为写，后不再赘述
+  11   1          hardwareI2CSendBeyt(0xE0);
+  12   1          hardwareI2CSendBeyt(0xB6); // 0xE0寄存器写0xB6，软重启。
+  13   1          hardwareI2CStop();
+  14   1      }
+  15          
+  16          void BMP280_ReadParameter(void) // 修正参数读取函数。true表示向传感器发送ACK标志位继�
+             -��传输数据
+  17          {
+  18   1          hardwareI2CStart();
+  19   1          hardwareI2CSendBeyt(0xEC);
+  20   1          hardwareI2CSendBeyt(0x88); // 选定0x88寄存器，开始读取修正参数
+  21   1          hardwareI2CStart();
+  22   1          hardwareI2CSendBeyt(0xED); // 0x76地址加上1的最低位，R/W选为读
+  23   1          BMP280.T1 = hardwareI2CReceiveBeyt(1);
+  24   1          BMP280.T1|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  25   1          BMP280.T2 = hardwareI2CReceiveBeyt(1);
+  26   1          BMP280.T2|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  27   1          BMP280.T3 = hardwareI2CReceiveBeyt(1);
+  28   1          BMP280.T3|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  29   1          BMP280.P1 = hardwareI2CReceiveBeyt(1);
+  30   1          BMP280.P1|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  31   1          BMP280.P2 = hardwareI2CReceiveBeyt(1);
+  32   1          BMP280.P2|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  33   1          BMP280.P3 = hardwareI2CReceiveBeyt(1);
+  34   1          BMP280.P3|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  35   1          BMP280.P4 = hardwareI2CReceiveBeyt(1);
+  36   1          BMP280.P4|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  37   1          BMP280.P5 = hardwareI2CReceiveBeyt(1);
+  38   1          BMP280.P5|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  39   1          BMP280.P6 = hardwareI2CReceiveBeyt(1);
+  40   1          BMP280.P6|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  41   1          BMP280.P7 = hardwareI2CReceiveBeyt(1);
+  42   1          BMP280.P7|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  43   1          BMP280.P8 = hardwareI2CReceiveBeyt(1);
+  44   1          BMP280.P8|=((unsigned long )hardwareI2CReceiveBeyt(1)<<8);
+  45   1          BMP280.P9 = hardwareI2CReceiveBeyt(1);
+  46   1          BMP280.P9|=((unsigned long )hardwareI2CReceiveBeyt(0)<<8);
+  47   1          hardwareI2CStop();
+  48   1      }
+  49          
+  50          void BMP280_Init(void) // BMP280初始化函数
+  51          {
+  52   1          unsigned int counter;
+C51 COMPILER V9.60.0.0   BMP280                                                            04/09/2023 00:45:32 PAGE 2   
+
+  53   1          BMP280_Restart();
+  54   1          for(counter=0;counter<65535;counter++);
+  55   1          hardwareI2CStart();
+  56   1          hardwareI2CSendBeyt(0xEC);
+  57   1          hardwareI2CSendBeyt(0xF4); // 寄存器地址
+  58   1          hardwareI2CSendBeyt(0x55); // 0b0101 0101选择16倍气压过采样，2倍温度过采样，force mode
+  59   1          hardwareI2CSendBeyt(0xF5); // 寄存器地址
+  60   1          hardwareI2CSendBeyt(0x10); // 0b0001 0000由于使用force mode时间不关心，全填0，滤波器�
+             -�用16倍，SPI模式不关心，写0
+  61   1          hardwareI2CStop();
+  62   1          BMP280_ReadParameter();
+  63   1      }
+  64          
+  65          void BMP280_MeasureCmd(void) // 在mode上写0b01使能传感器又一次测量
+  66          {
+  67   1          hardwareI2CStart();
+  68   1          hardwareI2CSendBeyt(0xEC);
+  69   1          hardwareI2CSendBeyt(0xF4);
+  70   1          hardwareI2CSendBeyt(0x56);
+  71   1          hardwareI2CStop();
+  72   1      }
+  73          
+  74          void BMP280_ReadData(void) { 
+  75   1          if(BMP280_ChangeCompleted){
+  76   2          long T,p;
+  77   2          hardwareI2CStart();
+  78   2          hardwareI2CSendBeyt(0xEC);
+  79   2          hardwareI2CSendBeyt(0xF7);
+  80   2          hardwareI2CStart();
+  81   2          hardwareI2CSendBeyt(0xED);
+  82   2          p = (long)hardwareI2CReceiveBeyt(1);
+  83   2          p <<= 8;
+  84   2          p |= (long)hardwareI2CReceiveBeyt(1);
+  85   2          p <<= 4;
+  86   2          p |= (long)(hardwareI2CReceiveBeyt(1) >> 4);
+  87   2          T = (long)hardwareI2CReceiveBeyt(1);
+  88   2          T <<= 8;
+  89   2          T |= (long)hardwareI2CReceiveBeyt(1);
+  90   2          T <<= 4;
+  91   2          T |= (long)(hardwareI2CReceiveBeyt(0) >> 4);
+  92   2          hardwareI2CStop();
+  93   2          BMP280_MeasureCmd();
+  94   2          BMP280_Environmentinfo.temperature=BMP280_compensate_T(T);
+  95   2          BMP280_Environmentinfo.pressure=BMP280_compensate_P(p);
+  96   2          BMP280_ChangeCompleted=0;
+  97   2          BMP280_DataAvailable=1;
+  98   2          }
+  99   1      }
+ 100          
+ 101          long BMP280_compensate_T(long adc_T) {
+ 102   1          long var1, var2, T;
+ 103   1          var1 = ((((adc_T >> 3) - ((long)BMP280.T1 << 1))) * ((long)BMP280.T2)) >> 11;
+ 104   1          var2 = (((((adc_T >> 4) - ((long)BMP280.T1)) * ((adc_T >> 4) - ((long)BMP280.T1))) >> 12) * ((long)BMP
+             -280.T3)) >> 14;
+ 105   1          BMP280.t_fine = var1 + var2;
+ 106   1          T = (BMP280.t_fine * 5 + 128) >> 8;
+ 107   1          return T;
+ 108   1      }
+ 109          
+ 110          unsigned long BMP280_compensate_P(long adc_P) {
+ 111   1          long var1, var2;
+ 112   1          unsigned long p;
+C51 COMPILER V9.60.0.0   BMP280                                                            04/09/2023 00:45:32 PAGE 3   
+
+ 113   1          var1 = (((long)BMP280.t_fine) >> 1) - (long)64000;
+ 114   1          var2 = (((var1 >> 2) * (var1 >> 2)) >> 11) * ((long)BMP280.P6);
+ 115   1          var2 = var2 + ((var1 * ((long)BMP280.P5)) << 1);
+ 116   1          var2 = (var2 >> 2) + (((long)BMP280.P4) << 16);
+ 117   1          var1 = (((BMP280.P3 * (((var1 >> 2) * (var1 >> 2)) >> 13)) >> 3) + ((((long)BMP280.P2) * var1) >> 1)) 
+             ->> 18;
+ 118   1          var1 = ((((32768 + var1)) * ((long)BMP280.P1)) >> 15);
+ 119   1          if (var1 == 0) {
+ 120   2              return 0; // avoid exception caused by division by zero
+ 121   2          }
+ 122   1          p = (((unsigned long)(((long)1048576) - adc_P) - (var2 >> 12))) * 3125;
+ 123   1          if (p < 0x80000000) {
+ 124   2              p = (p << 1) / ((unsigned long)var1);
+ 125   2          } else {
+ 126   2              p = (p / (unsigned long)var1) * 2;
+ 127   2          }
+ 128   1          var1 = (((long)BMP280.P9) * ((long)(((p >> 3) * (p >> 3)) >> 13))) >> 12;
+ 129   1          var2 = (((long)(p >> 2)) * ((long)BMP280.P8)) >> 13;
+ 130   1          p = (unsigned long)((long)p + ((var1 + var2 + BMP280.P7) >> 4));
+ 131   1          return p;
+ 132   1      }
+ 133          
+ 134          bit BMP280_GetDataAvailableFlag(void){
+ 135   1          return BMP280_DataAvailable;
+ 136   1      }
+ 137          
+ 138          void BMP280_ChangeCompletedFlagSet(void){
+ 139   1          BMP280_ChangeCompleted=1;
+ 140   1      }
+ 141          
+ 142          BMP280TypeDef_Data* BMP280_GetData(void){
+ 143   1          BMP280_DataAvailable=0;
+ 144   1          return &BMP280_Environmentinfo;
+ 145   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1870    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     36      36
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

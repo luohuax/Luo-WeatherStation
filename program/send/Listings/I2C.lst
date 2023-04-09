@@ -1,0 +1,90 @@
+C51 COMPILER V9.60.0.0   I2C                                                               04/09/2023 00:49:11 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE I2C
+OBJECT MODULE PLACED IN .\Objects\I2C.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE I2C.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\I2C.l
+                    -st) TABS(2) OBJECT(.\Objects\I2C.obj)
+
+line level    source
+
+   1          #include "I2C.h"
+   2          
+   3          bit I2CBusy;
+   4          
+   5          void I2C_Isr() interrupt 24{
+   6   1        if(I2CMSST&0x40){
+   7   2          I2CMSST&=~0x40;//复位中断标志
+   8   2          I2CMSCR&=0xF0;//清空I2C控制器指令寄存器
+   9   2          I2CBusy=0;
+  10   2        }
+  11   1      }
+  12          
+  13          void hardwareI2CInit(void){
+  14   1        P_SW2|=0x80;
+  15   1        P1M0&=0xCF;
+  16   1        P1M1&=0xCF;
+  17   1        I2CCFG|=0xC1;//使能I2C控制器，选择主机模式，时钟系数为1
+  18   1        I2CMSAUX=0x01;//使能自动发送
+  19   1        I2CMSCR|=0x80;//使能I2C硬件中断
+  20   1        EA=1;
+  21   1        hardwareI2CSetClock(63);
+  22   1      }
+  23          
+  24          void hardwareI2CSetClock(unsigned char clock){
+  25   1        I2CCFG&=0xC0;
+  26   1        I2CCFG|=clock;
+  27   1      }
+  28          
+  29          void hardwareI2CStart(void){
+  30   1        I2CBusy=1;
+  31   1        I2CMSCR|=0x01;
+  32   1        while(I2CBusy);
+  33   1      }
+  34          
+  35          void hardwareI2CStop(void){
+  36   1        I2CBusy=1;
+  37   1        I2CMSCR|=0x06;
+  38   1        while(I2CBusy);
+  39   1      }
+  40          
+  41          bit hardwareI2CSendBeyt(unsigned char info){
+  42   1        I2CBusy=1;
+  43   1        I2CTXD=info;
+  44   1        while(I2CBusy);
+  45   1        if(I2CMSST&0x20!=0)
+  46   1          return 0;
+  47   1        else
+  48   1          return 1;
+  49   1      }
+  50          
+  51          unsigned char hardwareI2CReceiveBeyt(bit ACK){
+  52   1        I2CBusy=1;
+  53   1        I2CMSCR|=0x04;
+  54   1        while(I2CBusy);
+C51 COMPILER V9.60.0.0   I2C                                                               04/09/2023 00:49:11 PAGE 2   
+
+  55   1        if(ACK==1){
+  56   2          I2CMSST&=~0x01;
+  57   2        }else{
+  58   2          I2CMSST|=0x01;
+  59   2        }
+  60   1        I2CBusy=1;
+  61   1        I2CMSCR|=0x05;
+  62   1        while(I2CBusy);
+  63   1        return I2CRXD;
+  64   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    172    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

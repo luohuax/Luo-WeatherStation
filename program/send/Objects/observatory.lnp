@@ -1,0 +1,11 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\BMP280.obj",
+".\Objects\AHT20.obj",
+".\Objects\I2C.obj",
+".\Objects\SPI.obj",
+".\Objects\SI24R1.obj",
+".\Objects\ADC.obj",
+".\Objects\USART.obj" 
+TO ".\Objects\observatory" 
+PRINT(".\Listings\observatory.m51") RAMSIZE(256) 

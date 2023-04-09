@@ -1,0 +1,181 @@
+C51 COMPILER V9.60.0.0   SI24R1                                                            04/09/2023 12:57:24 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE SI24R1
+OBJECT MODULE PLACED IN .\Objects\SI24R1.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE SI24R1.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\SI
+                    -24R1.lst) TABS(2) OBJECT(.\Objects\SI24R1.obj)
+
+line level    source
+
+   1          #include "SI24R1.h"
+   2          
+   3          bit SI24R1_Data;
+   4          
+   5          unsigned char buffer[10];
+   6          
+   7          void INT2_Isr() interrupt 10{
+   8   1        SI24R1_Data=1;
+   9   1      }
+  10          
+  11          unsigned char SI24R1_WriteRegAddress_Write(unsigned char address){
+  12   1        return hardwareSPIExchangeData(0x20|address);
+  13   1      }
+  14          
+  15          unsigned char SI24R1_WriteRegAddress_Read(unsigned char address){
+  16   1        return hardwareSPIExchangeData(address);
+  17   1      }
+  18          
+  19          unsigned char SI24R1_WriteCmd(unsigned char info){
+  20   1        return hardwareSPIExchangeData(info);
+  21   1      }
+  22          
+  23          void SI24R1_WriteData(unsigned char info){
+  24   1        hardwareSPIExchangeData(info);
+  25   1      }
+  26          
+  27          unsigned char SI24R1_ReadData(void){
+  28   1        return hardwareSPIExchangeData(0x00);
+  29   1      }
+  30          
+  31          void SI24R1_Switch(bit status){
+  32   1        SS=0;
+  33   1        SI24R1_WriteRegAddress_Write(0x00);
+  34   1        if(status)
+  35   1          SI24R1_WriteData(0x0B);
+  36   1        else
+  37   1          SI24R1_WriteData(0x09);
+  38   1        SS=1;
+  39   1      }
+  40          
+  41          
+  42          void SI24R1_Init(void){
+  43   1        unsigned char i;
+  44   1        CE=0;
+  45   1        P_SW2|=0x80;
+  46   1        P3M0&=0xBF;
+  47   1        P3M1&=0xBF;//P3.6口准双向输出用于中断
+  48   1        P1M0|=0x40;
+  49   1        P1M1&=~0x40;//P1.6口推挽输出用于使能发射机
+  50   1        for(i=0;i<255;i++);
+  51   1        INTCLKO|=0x10;//开启INT2中断
+  52   1        EA=1;//开启总中断
+  53   1        CE=0;
+  54   1        SS=0;
+C51 COMPILER V9.60.0.0   SI24R1                                                            04/09/2023 12:57:24 PAGE 2   
+
+  55   1        SI24R1_WriteCmd(0xFF);//第一字节发送错误，空指令填充
+  56   1        SS=1;
+  57   1        SS=0;
+  58   1        SI24R1_WriteRegAddress_Write(0x00);
+  59   1        SI24R1_WriteData(0x09);//使能所有中断，开启CRC，长度为1byte，接收模式
+  60   1        SS=1;
+  61   1        SS=0;
+  62   1        SI24R1_WriteRegAddress_Write(0x01);
+  63   1        SI24R1_WriteData(0x03);//仅使能数据管道0，1自动确认
+  64   1        SS=1;
+  65   1        SS=0;
+  66   1        SI24R1_WriteRegAddress_Write(0x02);
+  67   1        SI24R1_WriteData(0x03);//仅使能数据管道0，1
+  68   1        SS=1;
+  69   1        SS=0;
+  70   1        SI24R1_WriteRegAddress_Write(0x03);
+  71   1        SI24R1_WriteData(0x03);//5bytes地址宽度
+  72   1        SS=1;
+  73   1        SS=0;
+  74   1        SI24R1_WriteRegAddress_Write(0x04);
+  75   1        SI24R1_WriteData(0x35);//1ms，5次重发
+  76   1        SS=1;
+  77   1        SS=0;
+  78   1        SI24R1_WriteRegAddress_Write(0x05);
+  79   1        SI24R1_WriteData(0x4B);//使用信道75（2475Mhz无线电频率）
+  80   1        SS=1;
+  81   1        SS=0;
+  82   1        SI24R1_WriteRegAddress_Write(0x06);
+  83   1        SI24R1_WriteData(0x27);//250kbps带宽，7dBm发射功率
+  84   1        SS=1;
+  85   1        SS=0;
+  86   1        SI24R1_WriteRegAddress_Write(0x07);
+  87   1        SI24R1_WriteData(0x70);//清除所有中断标志位
+  88   1        SS=1;
+  89   1        SS=0;
+  90   1        SI24R1_WriteRegAddress_Write(0x0A);
+  91   1        for(i=0;i<5;i++)
+  92   1          SI24R1_WriteData(0x8D);//数据管道0接收地址0x8D8D8D8D8D
+  93   1        SS=1;
+  94   1        SS=0;
+  95   1        SI24R1_WriteRegAddress_Write(0x0B);
+  96   1        for(i=0;i<5;i++)
+  97   1          SI24R1_WriteData(0x8C);//数据管道1接收地址0x8C8C8C8C8C
+  98   1        SS=1;
+  99   1        SS=0;
+ 100   1        SI24R1_WriteRegAddress_Write(0x10);
+ 101   1        for(i=0;i<5;i++)
+ 102   1          SI24R1_WriteData(0x8D);//数据发射地址0x8D8D8D8D8D
+ 103   1        SS=1;
+ 104   1        SS=0;
+ 105   1        SI24R1_WriteRegAddress_Write(0x12);
+ 106   1        SI24R1_WriteData(DATALENGTH);//指定数据长度
+ 107   1        SS=1;
+ 108   1        SS=0;
+ 109   1        SI24R1_WriteRegAddress_Write(0x1C);
+ 110   1        SI24R1_WriteData(0x00);//关闭所有接收管道的动态负载长度
+ 111   1        SS=1;
+ 112   1        SS=0;
+ 113   1        SI24R1_WriteRegAddress_Write(0x1D);
+ 114   1        SI24R1_WriteData(0x00);//关闭动态负载长度，关闭ACK负载，关闭NOACK
+ 115   1        SS=1;
+ 116   1        SS=0;
+C51 COMPILER V9.60.0.0   SI24R1                                                            04/09/2023 12:57:24 PAGE 3   
+
+ 117   1        SI24R1_WriteCmd(0xE1);//清空TX FIFO
+ 118   1        SS=1;
+ 119   1        SS=0;
+ 120   1        SI24R1_WriteCmd(0xE2);//清空RX FIFO
+ 121   1        SS=1;
+ 122   1        CE=1;
+ 123   1        SI24R1_Data=0;
+ 124   1        SI24R1_Switch(1);
+ 125   1      }
+ 126          
+ 127          void SI24R1_ReadReceiveData(void){
+ 128   1        unsigned char i;
+ 129   1        CE=0;
+ 130   1        for(i=0;i<120;i++);
+ 131   1        SS=0;
+ 132   1        SI24R1_WriteRegAddress_Write(0x07);
+ 133   1        SI24R1_WriteData(0x70);
+ 134   1        SS=1;
+ 135   1        SS=0;
+ 136   1        SI24R1_WriteCmd(0x61);
+ 137   1        for(i=0;i<DATALENGTH;i++)
+ 138   1          buffer[i]=SI24R1_ReadData();
+ 139   1        SS=1;
+ 140   1        CE=1;
+ 141   1      }
+ 142          
+ 143          unsigned char* SI24R1_GetData(void){
+ 144   1        return buffer;
+ 145   1      }
+ 146          
+ 147          bit SI24R1_GetStatus(void){
+ 148   1        return SI24R1_Data;
+ 149   1      }
+ 150          
+ 151          void SI24R1_ClearFlag(void){
+ 152   1        SI24R1_Data=0;
+ 153   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    461    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     10       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

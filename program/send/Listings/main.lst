@@ -1,0 +1,143 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              04/09/2023 12:08:54 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "STC8H.H"
+   2          #include "I2C.h"
+   3          #include "SPI.h"
+   4          #include "SI24R1.h"
+   5          #include "ADC.h"
+   6          #include "BMP280.h"
+   7          #include "AHT20.h"
+   8          #include "USART.h"
+   9          
+  10          void SystemClockInit(void);//使用Timer0作为系统滴答计时器，每1ms触发一次中断
+  11          void SystemDataProcess(void);
+  12          
+  13          unsigned char buffer[DATALENGTH];
+  14          unsigned char DataAvailableFlag=0x00;
+  15          
+  16          struct{
+  17            int temperature;
+  18            unsigned long pressure;
+  19            unsigned int humidity;
+  20            unsigned int Voltage;
+  21          }SystemData;
+  22          
+  23          void main(void){
+  24   1        unsigned int i;
+  25   1        hardwareI2CInit();
+  26   1        hardwareSPIInit();
+  27   1        USART_Init(115200);
+  28   1        for(i=0;i<65535;i++);
+  29   1        BMP280_Init();
+  30   1        AHT20_Init();
+  31   1        SI24R1_Init();
+  32   1        ADC_Init();//所有总线及外设初始化
+  33   1        SystemClockInit();//初始化系统滴答计时器
+  34   1        while(1){
+  35   2          BMP280_ReadData();
+  36   2          AHT20_ReadData();
+  37   2          ADC_DataCalculate();
+  38   2          SystemDataProcess();
+  39   2        }
+  40   1      }
+  41          
+  42          void SystemClockInit(void){
+  43   1        TMOD=0x03;//设置计数器0脉冲源为系统时钟，设置计数器0不受外部中断影响，设置
+             -计数器0为不可屏蔽的16位自动重载模式
+  44   1        AUXR|=0x80;//设置计数器0的脉冲源为系统时钟且不分频
+  45   1        INTCLKO&=~0x01;//关闭Timer0的时钟输出
+  46   1        TH0=0x77;
+  47   1        TL0=0x48;//计数器溢出时间为1ms
+  48   1        ET0=1;//开启Timer0的硬件中断
+  49   1        TR0=1;//启动Timer0
+  50   1      }
+  51          
+  52          void TM0_Isr() interrupt 1{
+  53   1        static unsigned int count=0;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/09/2023 12:08:54 PAGE 2   
+
+  54   1        count++;
+  55   1        if(count>=1000){
+  56   2          BMP280_ChangeCompletedFlagSet();
+  57   2          AHT20_ChangeCompletedFlagSet();
+  58   2          ADC_Enable();
+  59   2          count=0;
+  60   2        }
+  61   1      }
+  62          
+  63          void SystemDataProcess(void){
+  64   1        if(BMP280_GetDataAvailableFlag()){
+  65   2            unsigned char i;
+  66   2            SystemData.pressure=BMP280_GetData()->pressure;
+  67   2            USART_SendStr("BMP280:");
+  68   2            USART_SendNumberInWord(SystemData.pressure,10);
+  69   2            USART_SendByte('\r');
+  70   2            USART_SendByte('\n');
+  71   2            for(i=0;i<4;i++){
+  72   3              buffer[2+i]=SystemData.pressure;
+  73   3              SystemData.pressure>>=8;
+  74   3            }
+  75   2            DataAvailableFlag|=0x01;
+  76   2          }
+  77   1          if(AHT20_GetDataAvailableFlag()){
+  78   2            unsigned char j;
+  79   2            AHT20TypeDef_Data* i;
+  80   2            i=AHT20_GetData();
+  81   2            SystemData.temperature=i->temperature;
+  82   2            SystemData.humidity=i->humidity;
+  83   2            USART_SendStr("AHT20:");
+  84   2            USART_SendNumberInWord(SystemData.temperature,6);
+  85   2            USART_SendByte(' ');
+  86   2            USART_SendNumberInWord(SystemData.humidity,6);
+  87   2            USART_SendByte('\r');
+  88   2            USART_SendByte('\n');
+  89   2            for(j=0;j<2;j++){
+  90   3              buffer[j]=SystemData.temperature;
+  91   3              SystemData.temperature>>=8;
+  92   3            }
+  93   2            for(j=0;j<2;j++){
+  94   3              buffer[6+j]=SystemData.humidity;
+  95   3              SystemData.humidity>>=8;
+  96   3            }
+  97   2            DataAvailableFlag|=0x02;
+  98   2          }
+  99   1          if(ADC_GetDataAvailableFlag()){
+ 100   2            unsigned char i;
+ 101   2            SystemData.Voltage=ADC_GetVoltage();
+ 102   2            for(i=0;i<2;i++){
+ 103   3              buffer[8+i]=SystemData.Voltage;
+ 104   3              SystemData.Voltage>>=8;
+ 105   3            }
+ 106   2            DataAvailableFlag|=0x04;
+ 107   2          }
+ 108   1          if(!SI24R1_GetStatus())
+ 109   1            DataAvailableFlag|=0x08;
+ 110   1          if(DataAvailableFlag==0x0F){
+ 111   2            SI24R1_SendData(buffer,DATALENGTH);
+ 112   2            DataAvailableFlag=0x00;
+ 113   2          }
+ 114   1      }
+
+C51 COMPILER V9.60.0.0   MAIN                                                              04/09/2023 12:08:54 PAGE 3   
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    516    ----
+   CONSTANT SIZE    =     15    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     23       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

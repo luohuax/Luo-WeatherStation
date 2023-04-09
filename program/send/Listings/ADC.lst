@@ -1,0 +1,95 @@
+C51 COMPILER V9.60.0.0   ADC                                                               04/09/2023 00:39:25 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE ADC
+OBJECT MODULE PLACED IN .\Objects\ADC.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE ADC.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ADC.l
+                    -st) TABS(2) OBJECT(.\Objects\ADC.obj)
+
+line level    source
+
+   1          #include "ADC.h"
+   2          #include "Intrins.h"
+   3          
+   4          unsigned int VRefMeasurementValue;
+   5          unsigned int Voltage;
+   6          
+   7          bit ADC_ChangeCompleted,ADC_DataAvailable;
+   8          
+   9          void ADC_Isr() interrupt 5{
+  10   1        ADC_CONTR&=~0x20;
+  11   1        ADC_ChangeCompleted=1;
+  12   1      }
+  13          
+  14          void ADC_Init(void){ //模拟信号-数字信号转换器（ADC）初始化函数
+  15   1        unsigned int i;
+  16   1        ADC_ChangeCompleted=ADC_DataAvailable=0;
+  17   1        P_SW2|=0x80;//使能访问XFR
+  18   1        P1M0&=~0x02;
+  19   1        P1M1|=0x02;//设置P1.1 GPIO口为高阻态输入
+  20   1        ADC_CONTR=0x0F;//关闭ADC，清零ADC转换完成标志位，关闭PWM触发ADC转换，使能ADC15通�
+             -��
+  21   1        ADCCFG=0x2F;//设置转换结果右对齐，设置ADC时钟1.0938MHz
+  22   1        ADCTIM=0x3F;//设置ADC准备时间1时钟周期，保持时间2时钟周期，采样时间15时钟周�
+             -�
+  23   1        //ADCEXCFG=0x05;//关闭ETR上升沿触发ADC，设置结果为4次ADC转换平均值
+  24   1        ADC_Switch(1);
+  25   1        for(i=0;i<40000;i++);
+  26   1        ADC_Enable();
+  27   1        _nop_();
+  28   1        _nop_();
+  29   1        while(!(ADC_CONTR&0x20));
+  30   1        VRefMeasurementValue|=ADC_RES;
+  31   1        VRefMeasurementValue<<=8;
+  32   1        VRefMeasurementValue|=ADC_RESL;
+  33   1        EADC=1;
+  34   1        EA=1;
+  35   1      }
+  36          
+  37          void ADC_Enable(void){
+  38   1        ADC_CONTR|=0x40;
+  39   1      }
+  40          
+  41          void ADC_Switch(bit status){
+  42   1        if(status)
+  43   1          ADC_CONTR|=0x80;
+  44   1        else
+  45   1          ADC_CONTR&=~0x80;
+  46   1      }
+  47          
+  48          void ADC_DataCalculate(void){
+  49   1        if(ADC_ChangeCompleted){
+  50   2          unsigned int i;
+  51   2          i|=ADC_RES;
+  52   2          i<<=8;
+C51 COMPILER V9.60.0.0   ADC                                                               04/09/2023 00:39:25 PAGE 2   
+
+  53   2          i|=ADC_RESL;
+  54   2          Voltage=(unsigned long)i*(unsigned long)VREF/VRefMeasurementValue;
+  55   2          ADC_ChangeCompleted=0;
+  56   2          ADC_DataAvailable=1;
+  57   2        }
+  58   1      }
+  59          
+  60          unsigned int ADC_GetVoltage(void){
+  61   1        ADC_DataAvailable=0;
+  62   1        return Voltage;
+  63   1      }
+  64          
+  65          bit ADC_GetDataAvailableFlag(void){
+  66   1        return ADC_DataAvailable;
+  67   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    180    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

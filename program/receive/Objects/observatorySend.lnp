@@ -1,0 +1,7 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\SI24R1.obj",
+".\Objects\SPI.obj",
+".\Objects\USART.obj" 
+TO ".\Objects\observatorySend" 
+PRINT(".\Listings\observatorySend.m51") RAMSIZE(256) 

@@ -1,0 +1,55 @@
+C51 COMPILER V9.60.0.0   SPI                                                               04/09/2023 12:57:24 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE SPI
+OBJECT MODULE PLACED IN .\Objects\SPI.obj
+COMPILER INVOKED BY: D:\Kile V5\C51\BIN\C51.EXE SPI.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\SPI.l
+                    -st) TABS(2) OBJECT(.\Objects\SPI.obj)
+
+line level    source
+
+   1          #include "SPI.h"
+   2          
+   3          bit SPIBusy;
+   4          
+   5          void SPI_Isr() interrupt 9{
+   6   1        SPSTAT=0xC0;
+   7   1        SPIBusy=0;
+   8   1      }
+   9          
+  10          
+  11          void hardwareSPIInit(void){
+  12   1        P_SW2|=0x80;
+  13   1        P1M0&=0xC3;
+  14   1        P1M1&=0x43;
+  15   1        P1M0|=0x80;
+  16   1        SPIBusy=0;
+  17   1        SS=1;
+  18   1        SPCTL=0x50;
+  19   1        SPSTAT=0xC0;
+  20   1        IE2|=0x02;
+  21   1        EA=1;
+  22   1      }
+  23          
+  24          unsigned char hardwareSPIExchangeData(unsigned char info){
+  25   1        SPIBusy =1;
+  26   1        SPDAT=info;
+  27   1        while(SPIBusy);
+  28   1        return SPDAT;
+  29   1      }
+  30          
+  31          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     44    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
